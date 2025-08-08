@@ -977,21 +977,27 @@ Twinkle.speedy.generalList = [
 		subgroup: [
 			{
 				name: 'subcriteria',
-				type: 'radio',
+				type: 'checkbox',
 				list: [
 					{
 						label: 'Communication intended for the user',
 						value: 'communication',
+						name: 'communication',
+						checked: false,
 						tooltip: 'The page contains communication intended for the user, such as "Here is your Wikipedia article on...".'
 					},
 					{
 						label: 'Implausible non-existent references',
 						value: 'implausible',
+						name: 'implausible',
+						checked: false,
 						tooltip: 'The page contains implausible non-existent references.'
 					},
 					{
 						label: 'Nonsensical citations',
 						value: 'nonsensical',
+						name: 'nonsensical',
+						checked: false,
 						tooltip: 'The page contains nonsensical citations.'
 					}
 				]
@@ -1073,6 +1079,7 @@ Twinkle.speedy.normalizeHash = {
 	copyvio: 'g12',
 	afc: 'g13',
 	disambig: 'g14',
+	llm: 'g15',
 	nocontext: 'a1',
 	foreign: 'a2',
 	nocontent: 'a3',
@@ -1787,12 +1794,16 @@ Twinkle.speedy.getParameters = function twinklespeedyGetParameters(form, values)
 				break;
 
 			case 'llm': // G15
-				if ( form['csd.subcriteria'] && form['csd.subcriteria'].value) {
-					if (form['csd.subcriteria'].value === 'communication') {
-						currentParams.communication = 'yes';
-					} else if (form['csd.subcriteria'].value === 'nonsensical' || form['csd.subcriteria'].value === 'implausible') {
+				if ( form['csd.reason'] && form['communication'] && form['nonsensical'] && form['implausible']) {
+					currentParams.communication = form['communication'].checked ? 'yes' : 'no';
+
+					const referencesIssue = form['nonsensical'].checked || form['implausible'].checked;
+					
+					if (referencesIssue) {
 						currentParams.references = 'yes';
-						if ( form['csd.subcriteria'].value === 'nonsensical' ) {
+						if ( form['nonsensical'].checked && form['implausible'].checked) {
+							currentParams.reason = 'Nonsensical and implausible references';
+						} else if ( form['nonsensical'].checked) {
 							currentParams.reason = 'Nonsensical references';
 						} else {
 							currentParams.reason = 'Implausible references';
@@ -1801,10 +1812,11 @@ Twinkle.speedy.getParameters = function twinklespeedyGetParameters(form, values)
 						if (form['csd.reason'] && form['csd.reason'].value) {
 							currentParams.reason += ': ' + form['csd.reason'].value;
 						}
+					} else {
+						currentParams.references = 'no';
+						currentParams.reason = form['csd.reason'].value;
 					}
-				}
-
-				if (form['csd.reason'] && form['csd.reason'].value && !(form['csd.subcriteria'] && form['csd.subcriteria'].value)) {
+				} else if (form['csd.reason'] && form['csd.reason'].value) {
 					currentParams.reason = form['csd.reason'].value;
 				}
 				break;
